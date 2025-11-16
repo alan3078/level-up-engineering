@@ -1,21 +1,36 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Services } from "@/components/company/services";
 import { Testimonials } from "@/components/company/testimonials";
 import { HeroBanner } from "@/components/home/hero-banner";
 import { ScrollAnimation, FadeIn } from "@/components/home/scroll-animation";
-import { Calculator, ArrowRight, CheckCircle } from "lucide-react";
+import { FixedLayout } from "@/components/layout/fixed-layout";
+import { ArrowRight, CheckCircle } from "lucide-react";
+import { useConfigItem } from "@/lib/hooks";
 
 export default function Home() {
+  const { data: experienceConfig } = useConfigItem("company_experience_years");
+  const experienceYears =
+    experienceConfig && typeof experienceConfig.value === "string"
+      ? experienceConfig.value
+      : "20年";
+
   return (
     <div className="flex flex-col">
       {/* Hero Banner with Scroll Animation */}
       <HeroBanner />
 
-      {/* Features Section */}
+      {/* Features Section - Fixed Layout */}
       <section className="w-full py-12 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
+        <FixedLayout>
           <div className="grid gap-6 lg:grid-cols-3 lg:gap-12">
             <FadeIn delay={0.1}>
               <Card className="hover:shadow-lg transition-shadow">
@@ -23,7 +38,7 @@ export default function Home() {
                   <CheckCircle className="h-12 w-12 text-primary mb-4" />
                   <CardTitle>專業團隊</CardTitle>
                   <CardDescription>
-                    20年經驗的專業裝修團隊，確保工程質素
+                    {experienceYears}經驗的專業裝修團隊，確保工程質素
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -51,23 +66,23 @@ export default function Home() {
               </Card>
             </FadeIn>
           </div>
-        </div>
+        </FixedLayout>
       </section>
 
-      {/* Services Section */}
+      {/* Services Section - Fixed Layout */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
         <Services />
       </section>
 
-      {/* Testimonials Section */}
+      {/* Testimonials Section - Fixed Layout */}
       <section className="w-full py-12 md:py-24 lg:py-32">
         <Testimonials />
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section - Fixed Layout */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-primary text-primary-foreground">
         <ScrollAnimation>
-          <div className="container px-4 md:px-6">
+          <FixedLayout>
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
@@ -84,7 +99,7 @@ export default function Home() {
                 </Link>
               </Button>
             </div>
-          </div>
+          </FixedLayout>
         </ScrollAnimation>
       </section>
     </div>

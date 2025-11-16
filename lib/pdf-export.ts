@@ -9,7 +9,7 @@ export async function exportQuotationToPDF(
 ): Promise<void> {
   // Create a temporary HTML element with the quotation content
   const quotationHTML = createQuotationHTML(formData, calculationResult);
-  
+
   // Create a temporary container
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = quotationHTML;
@@ -127,8 +127,9 @@ function createQuotationHTML(
             </tr>
           </thead>
           <tbody>
-            ${calculationResult.breakdown.map(
-              (item) => `
+            ${calculationResult.breakdown
+              .map(
+                (item) => `
               <tr style="border-bottom: 1px solid #ddd;">
                 <td style="padding: 8px; border: 1px solid #ddd;">${item.item}</td>
                 <td style="padding: 8px; border: 1px solid #ddd;">${item.description}</td>
@@ -137,7 +138,8 @@ function createQuotationHTML(
                 <td style="text-align: right; padding: 8px; border: 1px solid #ddd; font-weight: bold;">${formatCurrency(item.total)}</td>
               </tr>
             `
-            ).join("")}
+              )
+              .join("")}
             <tr style="background-color: #f5f5f5; font-weight: bold;">
               <td colspan="4" style="text-align: right; padding: 8px; border: 1px solid #ddd;">總計</td>
               <td style="text-align: right; padding: 8px; border: 1px solid #ddd; font-size: 14px;">${formatCurrency(calculationResult.averageEstimate)}</td>
@@ -155,4 +157,3 @@ function createQuotationHTML(
     </div>
   `;
 }
-

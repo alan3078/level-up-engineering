@@ -1,10 +1,10 @@
 "use client";
 
-import * as React from "react";
-import { motion, useInView } from "framer-motion";
+import { useRef, ReactNode } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 
 interface ScrollAnimationProps {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   delay?: number;
 }
@@ -14,15 +14,23 @@ export function ScrollAnimation({
   className = "",
   delay = 0,
 }: ScrollAnimationProps) {
-  const ref = React.useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-      transition={{ duration: 0.6, delay }}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 50 }}
+      animate={
+        isInView
+          ? { opacity: 1, y: 0 }
+          : { opacity: 0, y: prefersReducedMotion ? 0 : 50 }
+      }
+      transition={{
+        duration: prefersReducedMotion ? 0 : 0.6,
+        delay: prefersReducedMotion ? 0 : delay,
+      }}
       className={className}
     >
       {children}
@@ -31,24 +39,21 @@ export function ScrollAnimation({
 }
 
 interface FadeInProps {
-  children: React.ReactNode;
+  children: ReactNode;
   delay?: number;
   direction?: "up" | "down" | "left" | "right";
 }
 
-export function FadeIn({
-  children,
-  delay = 0,
-  direction = "up",
-}: FadeInProps) {
-  const ref = React.useRef<HTMLDivElement>(null);
+export function FadeIn({ children, delay = 0, direction = "up" }: FadeInProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   const directions = {
-    up: { y: 50 },
-    down: { y: -50 },
-    left: { x: 50 },
-    right: { x: -50 },
+    up: { y: prefersReducedMotion ? 0 : 50 },
+    down: { y: prefersReducedMotion ? 0 : -50 },
+    left: { x: prefersReducedMotion ? 0 : 50 },
+    right: { x: prefersReducedMotion ? 0 : -50 },
   };
 
   return (
@@ -60,10 +65,12 @@ export function FadeIn({
           ? { opacity: 1, x: 0, y: 0 }
           : { opacity: 0, ...directions[direction] }
       }
-      transition={{ duration: 0.6, delay }}
+      transition={{
+        duration: prefersReducedMotion ? 0 : 0.6,
+        delay: prefersReducedMotion ? 0 : delay,
+      }}
     >
       {children}
     </motion.div>
   );
 }
-

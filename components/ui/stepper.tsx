@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Fragment } from "react";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
@@ -20,7 +20,7 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
           const isPending = index > currentStep;
 
           return (
-            <React.Fragment key={index}>
+            <Fragment key={index}>
               <div className="flex flex-col items-center flex-1">
                 <div
                   className={cn(
@@ -29,8 +29,7 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
                       "bg-primary text-primary-foreground border-primary",
                     isCurrent &&
                       "bg-primary text-primary-foreground border-primary",
-                    isPending &&
-                      "bg-muted text-muted-foreground border-muted"
+                    isPending && "bg-muted text-muted-foreground border-muted"
                   )}
                 >
                   {isCompleted ? (
@@ -57,11 +56,10 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
                   )}
                 />
               )}
-            </React.Fragment>
+            </Fragment>
           );
         })}
       </div>
     </div>
   );
 }
-

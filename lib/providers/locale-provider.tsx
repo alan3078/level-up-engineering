@@ -10,15 +10,15 @@ import zhCN from "@/messages/zh-CN.json";
 const messages = { "en-US": enUS, "zh-HK": zhHK, "zh-CN": zhCN };
 
 const LocaleContext = createContext<{ locale: Locale; setLocale: (locale: Locale) => void }>({
-  locale: "en-US",
+  locale: "zh-HK",
   setLocale: () => undefined,
 });
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window === "undefined") return "en-US";
+    if (typeof window === "undefined") return "zh-HK";
     const saved = window.localStorage.getItem("site-locale");
-    return saved === "zh-HK" || saved === "zh-CN" ? saved : "en-US";
+    return saved === "en-US" || saved === "zh-CN" ? saved : "zh-HK";
   });
 
   const updateLocale = (nextLocale: Locale) => {

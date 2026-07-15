@@ -12,6 +12,7 @@ export async function exportQuotationToPDF(
 
   // Create a temporary container
   const tempDiv = document.createElement("div");
+  tempDiv.id = "pdf-quotation-export";
   tempDiv.innerHTML = quotationHTML;
   tempDiv.style.position = "absolute";
   tempDiv.style.left = "-9999px";
@@ -28,6 +29,27 @@ export async function exportQuotationToPDF(
       useCORS: true,
       logging: false,
       backgroundColor: "#ffffff",
+      // html2canvas cannot parse Tailwind v4's oklch/lab colors on iOS Safari.
+      // The quotation is fully styled inline, so removing application styles in
+      // the cloned document is safe and keeps rendering limited to RGB/hex CSS.
+      onclone: (clonedDocument) => {
+        clonedDocument
+          .querySelectorAll('style, link[rel="stylesheet"]')
+          .forEach((node) => node.remove());
+
+        const clonedQuotation = clonedDocument.getElementById(
+          "pdf-quotation-export"
+        );
+        if (clonedQuotation instanceof HTMLElement) {
+          clonedQuotation.style.position = "static";
+          clonedQuotation.style.display = "block";
+          clonedQuotation.style.backgroundColor = "#ffffff";
+          clonedQuotation.style.color = "#000000";
+        }
+
+        clonedDocument.documentElement.style.backgroundColor = "#ffffff";
+        clonedDocument.body.style.backgroundColor = "#ffffff";
+      },
     });
 
     // Create PDF

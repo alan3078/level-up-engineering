@@ -11,6 +11,9 @@ import { FixedLayout } from "@/components/layout/fixed-layout";
 import { useServices } from "@/lib/hooks";
 import type { Service } from "@/lib/types";
 import * as Icons from "lucide-react";
+import { localize } from "@/lib/i18n";
+import { useLocale } from "@/lib/providers/locale-provider";
+import { useTranslations } from "next-intl";
 
 // Fallback services
 const fallbackServices: Service[] = [
@@ -71,6 +74,8 @@ const fallbackServices: Service[] = [
 ];
 
 export function Services() {
+  const { locale } = useLocale();
+  const t = useTranslations("Home");
   const { data: servicesData = [] } = useServices();
   const services = servicesData.length > 0 ? servicesData : fallbackServices;
 
@@ -88,10 +93,8 @@ export function Services() {
     <FixedLayout>
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold">我們的服務</h2>
-          <p className="text-muted-foreground">
-            提供專業全面的裝修及設計服務，滿足您的各種需求
-          </p>
+          <h2 className="text-3xl font-bold">{t("servicesTitle")}</h2>
+          <p className="text-muted-foreground">{t("servicesSubtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -106,8 +109,8 @@ export function Services() {
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle>{service.title}</CardTitle>
-                  <CardDescription>{service.description}</CardDescription>
+                  <CardTitle>{localize(service.title, locale)}</CardTitle>
+                  <CardDescription>{localize(service.description, locale)}</CardDescription>
                 </CardHeader>
               </Card>
             );

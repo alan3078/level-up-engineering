@@ -2,10 +2,7 @@
 
 import { useState, useEffect, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
-import { isAdmin, checkAdminSession, getCurrentUserEmail } from "@/lib/auth/admin";
-import { useSafeAuthState } from "@/lib/hooks/use-safe-auth-state";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import {
   LogOut,
@@ -25,7 +22,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   // Use safe auth state hook that handles undefined auth
-  const [user, loading] = useSafeAuthState(auth);
   const [authenticated, setAuthenticated] = useState(false);
   const [checking, setChecking] = useState(true);
   const isLoginPage = pathname === "/admin/login";
@@ -53,56 +49,24 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
 
     const checkAuth = async () => {
-      // If Firebase auth is not available, check session storage only
-      if (!auth) {
-        if (checkAdminSession()) {
-          setAuthenticated(true);
-        } else {
-          router.push("/admin/login");
-        }
-        setChecking(false);
-        return;
-      }
-
-      if (loading) return;
-
-      if (!user) {
-        // Check session storage as fallback
-        if (!checkAdminSession()) {
-          router.push("/admin/login");
-          return;
-        }
-        setAuthenticated(true);
-        setChecking(false);
-        return;
-      }
-
-      // Check if user is admin
-      const adminStatus = await isAdmin(user);
-      const sessionCheck = checkAdminSession();
-
-      if (adminStatus || sessionCheck) {
-        setAuthenticated(true);
-      } else {
-        toast.error("權限不足", {
-          description: "您沒有訪問此頁面的權限",
-        });
+      if (!supabase) {
+        toast.error("Supabase 未初始化");
         router.push("/admin/login");
+        setChecking(false);
+        return;
       }
+      const { data } = await supabase.auth.getSession();
+      if (data.session) setAuthenticated(true);
+      else router.push("/admin/login");
       setChecking(false);
     };
 
     checkAuth();
-  }, [user, loading, router, isLoginPage]);
+  }, [router, isLoginPage]);
 
   const handleLogout = async () => {
     try {
-      if (auth) {
-        await signOut(auth);
-      }
-      sessionStorage.removeItem("isAdmin");
-      sessionStorage.removeItem("userEmail");
-      sessionStorage.removeItem("admin_authenticated");
+      if (supabase) await supabase.auth.signOut();
       toast.success("已登出");
       router.push("/admin/login");
     } catch (error) {
@@ -117,7 +81,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   // Show loading state while checking authentication
-  if (checking || loading) {
+  if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -161,7 +125,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
-              {user?.email || getCurrentUserEmail() || "管理員"}
+              管理員
             </span>
             <Button variant="outline" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />

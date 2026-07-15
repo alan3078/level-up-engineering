@@ -30,7 +30,8 @@ import {
   createService,
   updateService,
   deleteService,
-} from "@/lib/firebase/services";
+} from "@/lib/supabase";
+import { localize } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import type { Service } from "@/lib/types";
@@ -96,8 +97,8 @@ export default function ServicesAdminPage() {
       setEditingService(service);
       form.reset({
         icon: service.icon,
-        title: service.title,
-        description: service.description,
+        title: localize(service.title, "en-US"),
+        description: localize(service.description, "en-US"),
         order: service.order,
       });
     } else {
@@ -252,10 +253,10 @@ export default function ServicesAdminPage() {
                     <TableCell>{service.order}</TableCell>
                     <TableCell>{service.icon}</TableCell>
                     <TableCell className="font-medium">
-                      {service.title}
+                      {localize(service.title, "en-US")}
                     </TableCell>
                     <TableCell className="max-w-md truncate">
-                      {service.description}
+                      {localize(service.description, "en-US")}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

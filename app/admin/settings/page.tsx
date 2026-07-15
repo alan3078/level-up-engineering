@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { auth } from "@/lib/firebase/config";
-import { useSafeAuthState } from "@/lib/hooks/use-safe-auth-state";
 import {
   getConfigGroups,
   getConfigItems,
@@ -10,7 +8,7 @@ import {
   initializeDefaultConfig,
   ConfigGroup,
   ConfigItem,
-} from "@/lib/firebase/services";
+} from "@/lib/supabase";
 import {
   Card,
   CardContent,
@@ -33,9 +31,9 @@ import {
 import { toast } from "sonner";
 import { Save, RefreshCw, Loader2, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toI18nField, type I18nField } from "@/lib/i18n";
 
 export default function SettingsPage() {
-  const [_user] = useSafeAuthState(auth); // Ensure auth state is tracked
   const [groups, setGroups] = useState<ConfigGroup[]>([]);
   const [itemsByGroup, setItemsByGroup] = useState<
     Record<string, ConfigItem[]>
@@ -99,6 +97,30 @@ export default function SettingsPage() {
         updated[groupId] = updated[groupId].map((item) =>
           item.id === itemId ? { ...item, value: newValue } : item
         );
+      });
+      return updated;
+    });
+  };
+
+  const handleI18nValueChange = (
+    itemId: string,
+    field: "value" | "zh-HK" | "zh-CN",
+    nextValue: string
+  ) => {
+    setItemsByGroup((prev) => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach((groupId) => {
+        updated[groupId] = updated[groupId].map((item) => {
+          if (item.id !== itemId) return item;
+          const value = toI18nField(item.value) as I18nField<string>;
+          return {
+            ...item,
+            value:
+              field === "value"
+                ? { ...value, value: nextValue }
+                : { ...value, i18n: { ...value.i18n, [field]: nextValue || null } },
+          };
+        });
       });
       return updated;
     });
@@ -239,26 +261,24 @@ export default function SettingsPage() {
                       )}
                     </Label>
 
-                    {item.type === "text" && (
-                      <Input
-                        id={item.id}
-                        value={item.value as string}
-                        onChange={(e) =>
-                          handleValueChange(item.id || "", e.target.value)
-                        }
-                      />
-                    )}
-
-                    {item.type === "textarea" && (
-                      <Textarea
-                        id={item.id}
-                        value={item.value as string}
-                        onChange={(e) =>
-                          handleValueChange(item.id || "", e.target.value)
-                        }
-                        rows={3}
-                      />
-                    )}
+                    {(item.type === "text" || item.type === "textarea") && (() => {
+                      const value = toI18nField(item.value) as I18nField<string>;
+                      const Field = item.type === "textarea" ? Textarea : Input;
+                      return (
+                        <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-3">
+                          {(["value", "zh-HK", "zh-CN"] as const).map((locale) => (
+                            <div key={locale} className="space-y-1">
+                              <Label className="text-xs">{locale === "value" ? "English" : locale === "zh-HK" ? "繁中" : "简中"}</Label>
+                              <Field
+                                value={locale === "value" ? value.value : value.i18n?.[locale] ?? ""}
+                                onChange={(event) => handleI18nValueChange(item.id || "", locale, event.target.value)}
+                                rows={item.type === "textarea" ? 3 : undefined}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                     {item.type === "number" && (
                       <Input

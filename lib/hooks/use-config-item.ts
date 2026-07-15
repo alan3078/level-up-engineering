@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getConfigItemByKey } from "@/lib/firebase/services";
+import { getConfigItemByKey } from "@/lib/supabase";
 
 export function useConfigItem(key: string) {
   return useQuery({

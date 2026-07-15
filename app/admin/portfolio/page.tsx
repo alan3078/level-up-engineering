@@ -37,7 +37,8 @@ import {
   createPortfolioProject,
   updatePortfolioProject,
   deletePortfolioProject,
-} from "@/lib/firebase/services";
+} from "@/lib/supabase";
+import { localize } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import type { PortfolioProject, PropertyType } from "@/lib/types";
@@ -101,14 +102,14 @@ export default function PortfolioAdminPage() {
     if (project) {
       setEditingProject(project);
       form.reset({
-        title: project.title,
+        title: localize(project.title, "en-US"),
         propertyType: project.propertyType,
-        budgetRange: project.budgetRange,
-        style: project.style,
+        budgetRange: localize(project.budgetRange, "en-US"),
+        style: localize(project.style, "en-US"),
         beforeImage: project.beforeImage,
         afterImage: project.afterImage,
         cost: project.cost,
-        description: project.description,
+        description: localize(project.description, "en-US"),
         completedDate: project.completedDate,
         order: project.order || 0,
       });
@@ -317,10 +318,10 @@ export default function PortfolioAdminPage() {
                   <TableRow key={project.id}>
                     <TableCell>{project.order || 0}</TableCell>
                     <TableCell className="font-medium">
-                      {project.title}
+                      {localize(project.title, "en-US")}
                     </TableCell>
                     <TableCell>{project.propertyType}</TableCell>
-                    <TableCell>{project.style}</TableCell>
+                    <TableCell>{localize(project.style, "en-US")}</TableCell>
                     <TableCell>${project.cost.toLocaleString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

@@ -12,7 +12,7 @@ import {
   updateCalculatorPricing,
   updateHeroStats,
   updateConfigItem,
-} from "@/lib/firebase/services";
+} from "@/lib/supabase";
 import type { Service, Testimonial, PortfolioProject } from "@/lib/types";
 import { toast } from "sonner";
 

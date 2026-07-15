@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getTestimonials } from "@/lib/firebase/services";
+import { getTestimonials } from "@/lib/supabase";
 
 export function useTestimonials() {
   return useQuery({

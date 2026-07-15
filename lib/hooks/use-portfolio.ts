@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getPortfolioProjects } from "@/lib/firebase/services";
+import { getPortfolioProjects } from "@/lib/supabase";
 
 export function usePortfolioProjects() {
   return useQuery({

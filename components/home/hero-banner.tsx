@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Calculator, ArrowRight, Sparkles, Home } from "lucide-react";
 import { useHeroStats, useConfigItem } from "@/lib/hooks";
 import * as Icons from "lucide-react";
+import { localize, localizeValue } from "@/lib/i18n";
+import { useLocale } from "@/lib/providers/locale-provider";
 
 // Hook to detect mobile devices
 function useIsMobile() {
@@ -32,6 +34,7 @@ function useIsMobile() {
 }
 
 export function HeroBanner() {
+  const { locale } = useLocale();
   const ref = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const prefersReducedMotion = useReducedMotion();
@@ -63,20 +66,21 @@ export function HeroBanner() {
   const { data: experienceConfig } = useConfigItem("company_experience_years");
 
   // Extract values from config
-  const heroTitle =
-    titleConfig && typeof titleConfig.value === "string"
-      ? titleConfig.value
-      : "專業裝修服務";
-  const heroSubtitle =
-    subtitleConfig && typeof subtitleConfig.value === "string"
-      ? subtitleConfig.value
-      : "為您打造理想家居，提供一站式裝修及設計服務";
-  const badgeText =
-    badgeConfig && typeof badgeConfig.value === "string"
-      ? badgeConfig.value
-      : experienceConfig && typeof experienceConfig.value === "string"
-        ? `${experienceConfig.value}專業經驗`
-        : "20年專業經驗";
+  const heroTitle = localizeValue(
+    titleConfig?.value,
+    locale,
+    "Professional Renovation Services"
+  );
+  const heroSubtitle = localizeValue(
+    subtitleConfig?.value,
+    locale,
+    "Complete renovation and design services for your ideal home"
+  );
+  const badgeText = localizeValue(
+    badgeConfig?.value ?? experienceConfig?.value,
+    locale,
+    "20+ Years of Experience"
+  );
 
   // Process stats with icons
   const stats =
@@ -88,7 +92,7 @@ export function HeroBanner() {
           return {
             icon: IconComponent,
             value: stat.value,
-            label: stat.label,
+            label: localize(stat.label, locale),
           };
         })
       : [];

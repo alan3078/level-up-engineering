@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,59 +39,22 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    if (!auth) {
-      toast.error("Firebase 未初始化", {
-        description: "請檢查 Firebase 配置",
-      });
+    if (!supabase) {
+      toast.error("Supabase 未初始化", { description: "請檢查 .env.local 設定" });
       return;
     }
 
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
-      );
-
-      // Check if user is admin
-      const token = await userCredential.user.getIdTokenResult();
-      const isAdmin =
-        token.claims.admin === true || data.email === "admin@system.com";
-
-      if (isAdmin) {
-        // Store admin status in sessionStorage
-        sessionStorage.setItem("isAdmin", "true");
-        sessionStorage.setItem("userEmail", data.email);
-
-        toast.success("登錄成功", {
-          description: "歡迎回來！",
-        });
-
-        // Redirect to admin dashboard
-        router.push("/admin");
-      } else {
-        toast.error("權限不足", {
-          description: "您沒有管理員權限",
-        });
-        await auth.signOut();
-      }
+      const { error } = await supabase.auth.signInWithPassword(data);
+      if (error) throw error;
+      toast.success("登錄成功", { description: "歡迎回來！" });
+      router.push("/admin");
     } catch (error: unknown) {
       console.error("Login error:", error);
       let errorMessage = "登錄失敗，請稍後再試";
 
-      if (error && typeof error === "object" && "code" in error) {
-        const firebaseError = error as { code: string };
-        if (firebaseError.code === "auth/user-not-found") {
-          errorMessage = "用戶不存在";
-        } else if (firebaseError.code === "auth/wrong-password") {
-          errorMessage = "密碼錯誤";
-        } else if (firebaseError.code === "auth/invalid-email") {
-          errorMessage = "無效的電郵地址";
-        } else if (firebaseError.code === "auth/user-disabled") {
-          errorMessage = "帳號已被停用";
-        }
-      }
+      if (error instanceof Error) errorMessage = error.message;
 
       toast.error("登錄失敗", {
         description: errorMessage,

@@ -1,3 +1,5 @@
+import type { Localized } from "@/lib/i18n";
+
 export type PropertyType = "公屋" | "居屋" | "私樓" | "村屋";
 
 export type RenovationScope = "全屋" | "局部裝修";
@@ -39,14 +41,14 @@ export interface CalculationResult {
 
 export interface PortfolioProject {
   id: string;
-  title: string;
+  title: Localized;
   propertyType: PropertyType;
-  budgetRange: string;
-  style: string;
+  budgetRange: Localized;
+  style: Localized;
   beforeImage: string;
   afterImage: string;
   cost: number;
-  description: string;
+  description: Localized;
   completedDate: string;
   order?: number;
   createdAt?: string;
@@ -87,8 +89,8 @@ export interface CalculatorPricing {
 export interface Service {
   id: string;
   icon: string; // Icon name from lucide-react
-  title: string;
-  description: string;
+  title: Localized;
+  description: Localized;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -99,7 +101,7 @@ export interface Testimonial {
   name: string;
   propertyType: PropertyType;
   rating: number;
-  comment: string;
+  comment: Localized;
   initials: string;
   order: number;
   createdAt: string;
@@ -111,7 +113,7 @@ export interface HeroStats {
   stats: Array<{
     icon: string;
     value: string;
-    label: string;
+    label: Localized;
   }>;
   updatedAt: string;
 }

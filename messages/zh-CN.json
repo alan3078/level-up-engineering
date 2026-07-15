@@ -1,0 +1,5 @@
+{
+  "Navigation": {"home": "首页", "calculator": "成本计算器", "portfolio": "作品集", "about": "关于我们", "contact": "联系我们"},
+  "Home": {"servicesTitle": "我们的服务", "servicesSubtitle": "提供专业全面的装修及设计服务，满足您的各种需求", "testimonialsTitle": "客户评价", "testimonialsSubtitle": "真实客户评价，了解我们的服务质量", "owner": "业主"},
+  "Common": {"before": "装修前", "after": "装修后", "all": "全部", "language": "语言"}
+}

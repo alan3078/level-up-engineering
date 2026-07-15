@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getHeroStats, updateHeroStats } from "@/lib/firebase/services";
+import { getHeroStats, updateHeroStats } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Save, Plus, Trash2, Loader2 } from "lucide-react";
+import { toI18nField } from "@/lib/i18n";
 
 const heroStatsSchema = z.object({
   stats: z
@@ -24,7 +25,13 @@ const heroStatsSchema = z.object({
       z.object({
         icon: z.string().min(1, "請輸入圖標名稱"),
         value: z.string().min(1, "請輸入數值"),
-        label: z.string().min(1, "請輸入標籤"),
+        label: z.object({
+          value: z.string().min(1, "請輸入英文標籤"),
+          i18n: z.object({
+            "zh-HK": z.string().nullable().optional(),
+            "zh-CN": z.string().nullable().optional(),
+          }).optional(),
+        }),
       })
     )
     .min(1, "至少需要一個統計項目"),
@@ -34,9 +41,9 @@ type HeroStatsFormData = z.infer<typeof heroStatsSchema>;
 
 const defaultStats: HeroStatsFormData = {
   stats: [
-    { icon: "Home", value: "500+", label: "完成項目" },
-    { icon: "Palette", value: "20年", label: "專業經驗" },
-    { icon: "Sparkles", value: "98%", label: "客戶滿意度" },
+    { icon: "Home", value: "500+", label: { value: "Completed projects", i18n: { "zh-HK": "完成項目", "zh-CN": "完成项目" } } },
+    { icon: "Palette", value: "20+", label: { value: "Years of experience", i18n: { "zh-HK": "年專業經驗", "zh-CN": "年专业经验" } } },
+    { icon: "Sparkles", value: "98%", label: { value: "Client satisfaction", i18n: { "zh-HK": "客戶滿意度", "zh-CN": "客户满意度" } } },
   ],
 };
 
@@ -73,7 +80,9 @@ export default function HeroAdminPage() {
       setLoading(true);
       const stats = await getHeroStats();
       if (stats) {
-        form.reset({ stats: stats.stats });
+        form.reset({
+          stats: stats.stats.map((stat) => ({ ...stat, label: toI18nField(stat.label) })),
+        });
       }
     } catch (error) {
       console.error("Error loading stats:", error);
@@ -126,7 +135,7 @@ export default function HeroAdminPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => append({ icon: "Home", value: "", label: "" })}
+                onClick={() => append({ icon: "Home", value: "", label: { value: "", i18n: { "zh-HK": "", "zh-CN": "" } } })}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 新增項目
@@ -173,11 +182,25 @@ export default function HeroAdminPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor={`stats.${index}.label`}>標籤</Label>
+                        <Label htmlFor={`stats.${index}.label.value`}>Label (English)</Label>
                         <Input
-                          id={`stats.${index}.label`}
-                          {...form.register(`stats.${index}.label`)}
-                          placeholder="例如: 完成項目"
+                          id={`stats.${index}.label.value`}
+                          {...form.register(`stats.${index}.label.value`)}
+                          placeholder="e.g. Completed projects"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`stats.${index}.label.i18n.zh-HK`}>標籤（繁中）</Label>
+                        <Input
+                          id={`stats.${index}.label.i18n.zh-HK`}
+                          {...form.register(`stats.${index}.label.i18n.zh-HK`)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`stats.${index}.label.i18n.zh-CN`}>标签（简中）</Label>
+                        <Input
+                          id={`stats.${index}.label.i18n.zh-CN`}
+                          {...form.register(`stats.${index}.label.i18n.zh-CN`)}
                         />
                       </div>
                     </div>

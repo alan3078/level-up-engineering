@@ -37,7 +37,8 @@ import {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
-} from "@/lib/firebase/services";
+} from "@/lib/supabase";
+import { localize } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import type { Testimonial, PropertyType } from "@/lib/types";
@@ -95,7 +96,7 @@ export default function TestimonialsAdminPage() {
         name: testimonial.name,
         propertyType: testimonial.propertyType,
         rating: testimonial.rating,
-        comment: testimonial.comment,
+        comment: localize(testimonial.comment, "en-US"),
         initials: testimonial.initials,
         order: testimonial.order,
       });
@@ -281,7 +282,7 @@ export default function TestimonialsAdminPage() {
                     <TableCell>{testimonial.propertyType}</TableCell>
                     <TableCell>{testimonial.rating} ⭐</TableCell>
                     <TableCell className="max-w-md truncate">
-                      {testimonial.comment}
+                      {localize(testimonial.comment, "en-US")}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getHeroStats } from "@/lib/firebase/services";
+import { getHeroStats } from "@/lib/supabase";
 
 export function useHeroStats() {
   return useQuery({

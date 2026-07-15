@@ -29,6 +29,8 @@ import { PortfolioProject } from "@/lib/types";
 import { formatCurrency } from "@/lib/calculator";
 import { usePortfolioProjects } from "@/lib/hooks";
 import { Eye } from "lucide-react";
+import { localize } from "@/lib/i18n";
+import { useLocale } from "@/lib/providers/locale-provider";
 
 // Fallback portfolio data
 const FALLBACK_PROJECTS: PortfolioProject[] = [
@@ -56,7 +58,7 @@ const FALLBACK_PROJECTS: PortfolioProject[] = [
     beforeImage:
       "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",
     afterImage:
-      "https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop&q=80",
     cost: 1000000,
     description: "800平方呎私樓單位，豪華級別裝修，包括拆牆改動及訂造傢俬。",
     completedDate: "2024-02",
@@ -185,6 +187,7 @@ function BeforeAfterSlider({
 }
 
 export function PortfolioGallery() {
+  const { locale } = useLocale();
   const { data: projectsData = [] } = usePortfolioProjects();
   const projects = projectsData.length > 0 ? projectsData : FALLBACK_PROJECTS;
   const [selectedProject, setSelectedProject] =
@@ -198,12 +201,12 @@ export function PortfolioGallery() {
         filterPropertyType === "全部" ||
         project.propertyType === filterPropertyType;
       const matchesStyle =
-        filterStyle === "全部" || project.style === filterStyle;
+        filterStyle === "全部" || localize(project.style, locale) === filterStyle;
       return matchesPropertyType && matchesStyle;
     });
-  }, [projects, filterPropertyType, filterStyle]);
+  }, [projects, filterPropertyType, filterStyle, locale]);
 
-  const uniqueStyles = Array.from(new Set(projects.map((p) => p.style)));
+  const uniqueStyles = Array.from(new Set(projects.map((p) => localize(p.style, locale))));
 
   return (
     <FixedLayout>
@@ -258,7 +261,7 @@ export function PortfolioGallery() {
                 <div className="relative w-full h-48 overflow-hidden rounded-lg mb-4">
                   <Image
                     src={project.afterImage}
-                    alt={project.title}
+                    alt={localize(project.title, locale)}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -267,14 +270,14 @@ export function PortfolioGallery() {
                     <Eye className="text-white opacity-0 hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
-                <CardTitle className="text-lg">{project.title}</CardTitle>
-                <CardDescription>{project.description}</CardDescription>
+                <CardTitle className="text-lg">{localize(project.title, locale)}</CardTitle>
+                <CardDescription>{localize(project.description, locale)}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-2">
                   <Badge variant="secondary">{project.propertyType}</Badge>
-                  <Badge variant="outline">{project.style}</Badge>
-                  <Badge variant="outline">{project.budgetRange}</Badge>
+                  <Badge variant="outline">{localize(project.style, locale)}</Badge>
+                  <Badge variant="outline">{localize(project.budgetRange, locale)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   完成日期: {project.completedDate}
@@ -298,9 +301,9 @@ export function PortfolioGallery() {
             {selectedProject && (
               <>
                 <DialogHeader>
-                  <DialogTitle>{selectedProject.title}</DialogTitle>
+                  <DialogTitle>{localize(selectedProject.title, locale)}</DialogTitle>
                   <DialogDescription>
-                    {selectedProject.description}
+                    {localize(selectedProject.description, locale)}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -317,12 +320,12 @@ export function PortfolioGallery() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">裝修風格</p>
-                      <p className="font-semibold">{selectedProject.style}</p>
+                      <p className="font-semibold">{localize(selectedProject.style, locale)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">預算範圍</p>
                       <p className="font-semibold">
-                        {selectedProject.budgetRange}
+                        {localize(selectedProject.budgetRange, locale)}
                       </p>
                     </div>
                     <div>

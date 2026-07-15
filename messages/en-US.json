@@ -1,0 +1,5 @@
+{
+  "Navigation": {"home": "Home", "calculator": "Cost Calculator", "portfolio": "Portfolio", "about": "About Us", "contact": "Contact Us"},
+  "Home": {"servicesTitle": "Our Services", "servicesSubtitle": "Professional renovation and design services for every home", "testimonialsTitle": "Client Testimonials", "testimonialsSubtitle": "Hear from homeowners who worked with us", "owner": "Homeowner"},
+  "Common": {"before": "Before", "after": "After", "all": "All", "language": "Language"}
+}

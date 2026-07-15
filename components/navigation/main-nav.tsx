@@ -17,27 +17,37 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfigItem } from "@/lib/hooks";
+import { localizeValue, supportedLocales, type Locale } from "@/lib/i18n";
+import { useLocale } from "@/lib/providers/locale-provider";
+import { useTranslations } from "next-intl";
 
-const navItems = [
-  { href: "/", label: "首頁", icon: Home },
-  { href: "/calculator", label: "成本計算器", icon: Calculator },
-  { href: "/portfolio", label: "作品集", icon: ImageIcon },
-  { href: "/about", label: "關於我們", icon: Users },
-  { href: "/contact", label: "聯絡我們", icon: MessageCircle },
-];
+const localeLabels: Record<Locale, string> = {
+  "en-US": "Eng",
+  "zh-HK": "繁中",
+  "zh-CN": "简中",
+};
 
 export function MainNav() {
+  const { locale, setLocale } = useLocale();
+  const t = useTranslations("Navigation");
+  const tc = useTranslations("Common");
+  const navItems = [
+    { href: "/", label: t("home"), icon: Home },
+    { href: "/calculator", label: t("calculator"), icon: Calculator },
+    { href: "/portfolio", label: t("portfolio"), icon: ImageIcon },
+    { href: "/about", label: t("about"), icon: Users },
+    { href: "/contact", label: t("contact"), icon: MessageCircle },
+  ];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { data: companyNameShort } = useConfigItem("company_name_short");
   const { data: companyName } = useConfigItem("company_name");
 
-  const displayName =
-    companyNameShort && typeof companyNameShort.value === "string"
-      ? companyNameShort.value
-      : companyName && typeof companyName.value === "string"
-        ? companyName.value
-        : "豐進裝修工程";
+  const displayName = localizeValue(
+    companyNameShort?.value ?? companyName?.value,
+    locale,
+    "Fung Chun Renovation"
+  );
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -74,6 +84,26 @@ export function MainNav() {
                 </Link>
               );
             })}
+            <div
+              aria-label={tc("language")}
+              className="flex items-center rounded-full border bg-muted/60 p-0.5 shadow-sm"
+            >
+              {supportedLocales.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setLocale(item)}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-semibold transition-all",
+                    locale === item
+                      ? "bg-background text-primary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {localeLabels[item]}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -117,6 +147,28 @@ export function MainNav() {
                   </Link>
                 );
               })}
+              <div className="flex items-center justify-between border-t pt-4 mt-3">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {tc("language")}
+                </span>
+                <div className="flex rounded-full border bg-muted/60 p-0.5">
+                  {supportedLocales.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setLocale(item)}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+                        locale === item
+                          ? "bg-background text-primary shadow-sm"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {localeLabels[item]}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </FixedLayout>
         </div>

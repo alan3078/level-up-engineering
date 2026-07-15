@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, MouseEvent } from "react";
-import { useForm } from "react-hook-form";
+import { useState, MouseEvent, useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,19 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Stepper } from "@/components/ui/stepper";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -33,17 +21,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AnimatedHouseStepper } from "@/components/calculator/animated-house-stepper";
+import { AnimatedStepContent } from "@/components/calculator/animated-step-content";
+import { AnimatedButton } from "@/components/calculator/animated-button";
 import { FixedLayout } from "@/components/layout/fixed-layout";
 import {
   CalculatorFormData,
-  PropertyType,
-  RenovationScope,
-  MaterialQuality,
   SpecialRequirement,
 } from "@/lib/types";
 import { calculateRenovationCost, formatCurrency } from "@/lib/calculator";
-import { useCalculatorPricing } from "@/lib/hooks";
-import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { useCalculatorPricing, useUpdateCalculatorPricing } from "@/lib/hooks";
+import { ChevronLeft, ChevronRight, Download, Save, Loader2 } from "lucide-react";
+import {
+  PropertyInformationStep,
+  RoomConfigurationStep,
+  RenovationScopeStep,
+  MaterialQualityStep,
+  SpecialRequirementsStep,
+  OtherSettingsStep,
+} from "@/components/calculator/steps";
+import { calculatorPricingSchema, defaultPricing, type CalculatorPricingFormData } from "@/lib/calculator-pricing-types";
 
 const calculatorSchema = z.object({
   propertyType: z.enum(["公屋", "居屋", "私樓", "村屋"]),
@@ -59,7 +56,7 @@ const calculatorSchema = z.object({
   specialRequirements: z.array(z.string()),
 });
 
-const STEPS = [
+const PUBLIC_STEPS = [
   "物業資料",
   "房間配置",
   "裝修範圍",
@@ -68,14 +65,39 @@ const STEPS = [
   "報價結果",
 ];
 
-export function CostCalculator() {
+const ADMIN_STEPS = [
+  "物業資料",
+  "房間配置",
+  "裝修範圍",
+  "材料級別",
+  "特殊要求",
+  "其他設定",
+];
+
+interface CostCalculatorProps {
+  isAdmin?: boolean;
+}
+
+export function CostCalculator({ isAdmin = false }: CostCalculatorProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [prevStep, setPrevStep] = useState(0);
   const [calculationResult, setCalculationResult] = useState<ReturnType<
     typeof calculateRenovationCost
   > | null>(null);
-  const { data: pricing } = useCalculatorPricing();
+  const { data: pricing, isLoading } = useCalculatorPricing();
+  const updatePricing = useUpdateCalculatorPricing();
 
-  const form = useForm<CalculatorFormData>({
+  const STEPS = isAdmin ? ADMIN_STEPS : PUBLIC_STEPS;
+  const direction = currentStep > prevStep ? "forward" : "backward";
+
+  // Admin form
+  const adminForm = useForm<CalculatorPricingFormData>({
+    resolver: zodResolver(calculatorPricingSchema),
+    defaultValues: defaultPricing,
+  });
+
+  // Public form
+  const publicForm = useForm<CalculatorFormData>({
     resolver: zodResolver(calculatorSchema),
     defaultValues: {
       propertyType: "公屋",
@@ -92,28 +114,57 @@ export function CostCalculator() {
     },
   });
 
-  const watchPropertyType = form.watch("propertyType");
-  const watchSquareFootage = form.watch("squareFootage");
-  const watchRoomConfig = form.watch("roomConfig");
-  const watchRenovationScope = form.watch("renovationScope");
-  const watchMaterialQuality = form.watch("materialQuality");
-  const watchSpecialRequirements = form.watch("specialRequirements");
+  const form = isAdmin ? adminForm : publicForm;
+
+  const watchPropertyType = publicForm.watch("propertyType");
+  const watchSquareFootage = publicForm.watch("squareFootage");
+  const watchRoomConfig = publicForm.watch("roomConfig");
+  const watchRenovationScope = publicForm.watch("renovationScope");
+  const watchMaterialQuality = publicForm.watch("materialQuality");
+  const watchSpecialRequirements = publicForm.watch("specialRequirements");
+
+  const specialRequirementGroups = useWatch({
+    control: adminForm.control,
+    name: "specialRequirementGroups",
+  });
+
+  // Load admin pricing data
+  useEffect(() => {
+    if (isAdmin && pricing) {
+      adminForm.reset({
+        basePricePerSqft: pricing.basePricePerSqft,
+        qualityMultipliers: pricing.qualityMultipliers,
+        scopeMultipliers: pricing.scopeMultipliers,
+        roomBaseCosts: pricing.roomBaseCosts,
+        specialRequirementGroups: pricing.specialRequirementGroups || [],
+        variance: pricing.variance,
+      });
+    }
+  }, [isAdmin, pricing, adminForm]);
 
   const handleNext = async () => {
+    if (isAdmin) {
+      // Admin mode - no validation, just navigate
+      setPrevStep(currentStep);
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+      return;
+    }
+
+    // Public mode - validate before proceeding
     let isValid = false;
 
     switch (currentStep) {
       case 0:
-        isValid = await form.trigger(["propertyType", "squareFootage"]);
+        isValid = await publicForm.trigger(["propertyType", "squareFootage"]);
         break;
       case 1:
-        isValid = await form.trigger("roomConfig");
+        isValid = await publicForm.trigger("roomConfig");
         break;
       case 2:
-        isValid = await form.trigger("renovationScope");
+        isValid = await publicForm.trigger("renovationScope");
         break;
       case 3:
-        isValid = await form.trigger("materialQuality");
+        isValid = await publicForm.trigger("materialQuality");
         break;
       case 4:
         isValid = true; // Special requirements are optional
@@ -125,15 +176,17 @@ export function CostCalculator() {
     if (isValid) {
       if (currentStep === STEPS.length - 2) {
         // Calculate before showing results
-        const formData = form.getValues();
+        const formData = publicForm.getValues();
         const result = calculateRenovationCost(formData, pricing);
         setCalculationResult(result);
       }
+      setPrevStep(currentStep);
       setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
     }
   };
 
   const handlePrevious = () => {
+    setPrevStep(currentStep);
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
@@ -142,7 +195,19 @@ export function CostCalculator() {
     const updated = current.includes(req)
       ? current.filter((r) => r !== req)
       : [...current, req];
-    form.setValue("specialRequirements", updated);
+    publicForm.setValue("specialRequirements", updated);
+  };
+
+  const onAdminSubmit = async (data: CalculatorPricingFormData) => {
+    try {
+      await updatePricing.mutateAsync(data);
+      const { toast } = await import("sonner");
+      toast.success("設定已儲存");
+    } catch (error) {
+      console.error("Error saving pricing:", error);
+      const { toast } = await import("sonner");
+      toast.error("儲存失敗");
+    }
   };
 
   const exportToPDF = async (e?: MouseEvent<HTMLButtonElement>) => {
@@ -159,7 +224,7 @@ export function CostCalculator() {
 
     try {
       const { exportQuotationToPDF } = await import("@/lib/pdf-export");
-      const formData = form.getValues();
+      const formData = publicForm.getValues();
       await exportQuotationToPDF(formData, calculationResult);
 
       // Show success message
@@ -179,281 +244,108 @@ export function CostCalculator() {
     }
   };
 
+  if (isAdmin && isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <FixedLayout>
-      <div className="max-w-4xl mx-auto w-full">
+      <div className={isAdmin ? "space-y-6" : "max-w-4xl mx-auto w-full"}>
+        {isAdmin && (
+          <div>
+            <h1 className="text-3xl font-bold">計算器價格設定</h1>
+            <p className="text-muted-foreground mt-2">
+              管理裝修成本計算器的價格配置和倍數設定
+            </p>
+          </div>
+        )}
+        
         <Card>
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle className="text-xl sm:text-2xl md:text-3xl">
-              裝修成本計算器
+          <CardHeader className={isAdmin ? undefined : "px-4 sm:px-6"}>
+            <CardTitle className={isAdmin ? "text-2xl" : "text-xl sm:text-2xl md:text-3xl"}>
+              {isAdmin ? "價格配置" : "裝修成本計算器"}
             </CardTitle>
-            <CardDescription className="text-sm sm:text-base">
-              填寫以下資料，我們會為您提供專業的裝修報價估算
+            <CardDescription className={isAdmin ? undefined : "text-sm sm:text-base"}>
+              {isAdmin ? "為每個步驟配置對應的價格設定" : "填寫以下資料，我們會為您提供專業的裝修報價估算"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
-            <Stepper steps={STEPS} currentStep={currentStep} />
+          <CardContent className={isAdmin ? "space-y-6" : "space-y-4 sm:space-y-6 px-4 sm:px-6"}>
+            {isAdmin ? (
+              <Stepper steps={STEPS} currentStep={currentStep} />
+            ) : (
+              <AnimatedHouseStepper steps={STEPS} currentStep={currentStep} />
+            )}
 
             <Separator />
 
             <form
-              className="space-y-4 sm:space-y-6"
+              className={isAdmin ? "space-y-6" : "space-y-4 sm:space-y-6"}
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (isAdmin && currentStep === STEPS.length - 1) {
+                  adminForm.handleSubmit(onAdminSubmit)(e);
+                }
               }}
             >
-              {/* Step 1: Property Information */}
-              {currentStep === 0 && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="propertyType">物業類型</Label>
-                    <Select
-                      value={watchPropertyType}
-                      onValueChange={(value) =>
-                        form.setValue("propertyType", value as PropertyType)
-                      }
-                    >
-                      <SelectTrigger id="propertyType">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="公屋">公屋</SelectItem>
-                        <SelectItem value="居屋">居屋</SelectItem>
-                        <SelectItem value="私樓">私樓</SelectItem>
-                        <SelectItem value="村屋">村屋</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <AnimatedStepContent step={currentStep} direction={direction}>
+                {/* Step 1: Property Information */}
+                {currentStep === 0 && (
+                  <PropertyInformationStep
+                    form={form}
+                    isAdmin={isAdmin}
+                    watchPropertyType={watchPropertyType}
+                    watchSquareFootage={watchSquareFootage}
+                  />
+                )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="squareFootage">實用面積 (平方呎)</Label>
-                    <Input
-                      id="squareFootage"
-                      type="number"
-                      min="100"
-                      max="5000"
-                      value={watchSquareFootage}
-                      onChange={(e) =>
-                        form.setValue(
-                          "squareFootage",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      請輸入您的物業實用面積
-                    </p>
-                  </div>
-                </div>
-              )}
+                {/* Step 2: Room Configuration */}
+                {currentStep === 1 && (
+                  <RoomConfigurationStep
+                    form={form}
+                    isAdmin={isAdmin}
+                    watchRoomConfig={watchRoomConfig}
+                  />
+                )}
 
-              {/* Step 2: Room Configuration */}
-              {currentStep === 1 && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bedrooms">睡房數量</Label>
-                      <Input
-                        id="bedrooms"
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={watchRoomConfig.bedrooms}
-                        onChange={(e) =>
-                          form.setValue(
-                            "roomConfig.bedrooms",
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="livingRooms">客廳數量</Label>
-                      <Input
-                        id="livingRooms"
-                        type="number"
-                        min="0"
-                        max="5"
-                        value={watchRoomConfig.livingRooms}
-                        onChange={(e) =>
-                          form.setValue(
-                            "roomConfig.livingRooms",
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="kitchens">廚房數量</Label>
-                      <Input
-                        id="kitchens"
-                        type="number"
-                        min="0"
-                        max="3"
-                        value={watchRoomConfig.kitchens}
-                        onChange={(e) =>
-                          form.setValue(
-                            "roomConfig.kitchens",
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bathrooms">浴室數量</Label>
-                      <Input
-                        id="bathrooms"
-                        type="number"
-                        min="0"
-                        max="5"
-                        value={watchRoomConfig.bathrooms}
-                        onChange={(e) =>
-                          form.setValue(
-                            "roomConfig.bathrooms",
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+                {/* Step 3: Renovation Scope */}
+                {currentStep === 2 && (
+                  <RenovationScopeStep
+                    form={form}
+                    isAdmin={isAdmin}
+                    watchRenovationScope={watchRenovationScope}
+                  />
+                )}
 
-              {/* Step 3: Renovation Scope */}
-              {currentStep === 2 && (
-                <div className="space-y-4">
-                  <Label className="text-base sm:text-lg">裝修範圍</Label>
-                  <RadioGroup
-                    value={watchRenovationScope}
-                    onValueChange={(value) =>
-                      form.setValue("renovationScope", value as RenovationScope)
-                    }
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="全屋" id="full" />
-                      <Label
-                        htmlFor="full"
-                        className="cursor-pointer flex-1 text-sm sm:text-base"
-                      >
-                        全屋裝修
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="局部裝修" id="partial" />
-                      <Label
-                        htmlFor="partial"
-                        className="cursor-pointer flex-1 text-sm sm:text-base"
-                      >
-                        局部裝修
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              )}
+                {/* Step 4: Material Quality */}
+                {currentStep === 3 && (
+                  <MaterialQualityStep
+                    form={form}
+                    isAdmin={isAdmin}
+                    watchMaterialQuality={watchMaterialQuality}
+                  />
+                )}
 
-              {/* Step 4: Material Quality */}
-              {currentStep === 3 && (
-                <div className="space-y-4">
-                  <Label className="text-base sm:text-lg">材料級別</Label>
-                  <RadioGroup
-                    value={watchMaterialQuality}
-                    onValueChange={(value) =>
-                      form.setValue("materialQuality", value as MaterialQuality)
-                    }
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="基本" id="basic" />
-                      <Label
-                        htmlFor="basic"
-                        className="cursor-pointer flex-1 text-sm sm:text-base"
-                      >
-                        基本級別
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="標準" id="standard" />
-                      <Label
-                        htmlFor="standard"
-                        className="cursor-pointer flex-1 text-sm sm:text-base"
-                      >
-                        標準級別
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="豪華" id="luxury" />
-                      <Label
-                        htmlFor="luxury"
-                        className="cursor-pointer flex-1 text-sm sm:text-base"
-                      >
-                        豪華級別
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              )}
+                {/* Step 5: Special Requirements */}
+                {currentStep === 4 && (
+                  <SpecialRequirementsStep
+                    form={form}
+                    isAdmin={isAdmin}
+                    specialRequirementGroups={isAdmin ? specialRequirementGroups : pricing?.specialRequirementGroups}
+                    watchSpecialRequirements={watchSpecialRequirements}
+                    toggleSpecialRequirement={toggleSpecialRequirement}
+                  />
+                )}
 
-              {/* Step 5: Special Requirements */}
-              {currentStep === 4 && (
-                <div className="space-y-4">
-                  <Label className="text-base sm:text-lg">
-                    特殊要求 (可選多項)
-                  </Label>
-                  {pricing &&
-                  pricing.specialRequirementGroups &&
-                  pricing.specialRequirementGroups.length > 0 ? (
-                    <div className="space-y-4 sm:space-y-6">
-                      {pricing.specialRequirementGroups
-                        .sort((a, b) => a.order - b.order)
-                        .map((group) => (
-                          <div
-                            key={group.id}
-                            className="space-y-2 sm:space-y-3"
-                          >
-                            <Label className="text-sm sm:text-base font-semibold">
-                              {group.name}
-                            </Label>
-                            <div className="flex flex-wrap gap-2 sm:gap-3">
-                              {group.items
-                                .sort((a, b) => a.order - b.order)
-                                .map((item) => (
-                                  <Badge
-                                    key={item.id}
-                                    variant={
-                                      watchSpecialRequirements.includes(
-                                        item.name
-                                      )
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    className="cursor-pointer px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm transition-all hover:scale-105"
-                                    onClick={() =>
-                                      toggleSpecialRequirement(item.name)
-                                    }
-                                  >
-                                    {item.name}
-                                  </Badge>
-                                ))}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm sm:text-base text-muted-foreground">
-                      暫無特殊要求項目
-                    </p>
-                  )}
-                </div>
-              )}
+                {/* Step 6: Admin Other Settings */}
+                {isAdmin && currentStep === 5 && <OtherSettingsStep form={adminForm} />}
 
-              {/* Step 6: Results */}
-              {currentStep === 5 && calculationResult && (
+                {/* Step 6: Public Results */}
+                {!isAdmin && currentStep === 5 && calculationResult && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                     <Card>
@@ -468,9 +360,10 @@ export function CostCalculator() {
                         </CardTitle>
                       </CardContent>
                     </Card>
-                    <Card>
+                    
+                    <Card className="border-2 border-primary">
                       <CardHeader className="pb-2 px-4 sm:px-6">
-                        <CardDescription className="text-xs sm:text-sm">
+                        <CardDescription className="text-xs sm:text-sm font-semibold">
                           平均估算
                         </CardDescription>
                       </CardHeader>
@@ -480,6 +373,7 @@ export function CostCalculator() {
                         </CardTitle>
                       </CardContent>
                     </Card>
+                    
                     <Card className="sm:col-span-2 xl:col-span-1">
                       <CardHeader className="pb-2 px-4 sm:px-6">
                         <CardDescription className="text-xs sm:text-sm">
@@ -568,7 +462,7 @@ export function CostCalculator() {
                     </div>
                   </div>
 
-                  <Button
+                  <AnimatedButton
                     type="button"
                     onClick={exportToPDF}
                     className="w-full text-sm sm:text-base"
@@ -578,57 +472,104 @@ export function CostCalculator() {
                   >
                     <Download className="mr-2 h-4 w-4" />
                     匯出 PDF 報價單
-                  </Button>
+                  </AnimatedButton>
                 </div>
               )}
+              </AnimatedStepContent>
 
               {/* Navigation Buttons */}
-              {currentStep < STEPS.length - 1 && (
-                <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={currentStep === 0}
-                    className="w-full sm:w-auto order-2 sm:order-1"
-                    size="lg"
-                  >
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    上一步
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleNext}
-                    className="w-full sm:w-auto order-1 sm:order-2"
-                    size="lg"
-                  >
-                    下一步
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              {isAdmin ? (
+                // Admin navigation
+                <>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <AnimatedButton
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrevious}
+                      disabled={currentStep === 0}
+                    >
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      上一步
+                    </AnimatedButton>
+                    <div className="flex gap-2">
+                      {currentStep < STEPS.length - 1 ? (
+                        <AnimatedButton type="button" onClick={handleNext}>
+                          下一步
+                          <ChevronRight className="ml-2 h-4 w-4" />
+                        </AnimatedButton>
+                      ) : (
+                        <AnimatedButton type="submit" disabled={updatePricing.isPending}>
+                          {updatePricing.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              儲存中...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              儲存設定
+                            </>
+                          )}
+                        </AnimatedButton>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Public navigation
+                <>
+                  {currentStep < STEPS.length - 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+                      <AnimatedButton
+                        type="button"
+                        variant="outline"
+                        onClick={handlePrevious}
+                        disabled={currentStep === 0}
+                        className="w-full sm:w-auto order-2 sm:order-1"
+                        size="lg"
+                      >
+                        <ChevronLeft className="mr-2 h-4 w-4" />
+                        上一步
+                      </AnimatedButton>
+                      <AnimatedButton
+                        type="button"
+                        onClick={handleNext}
+                        className="w-full sm:w-auto order-1 sm:order-2"
+                        size="lg"
+                      >
+                        下一步
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </AnimatedButton>
+                    </div>
+                  )}
 
-              {currentStep === STEPS.length - 1 && (
-                <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevious}
-                    className="w-full sm:w-auto order-2 sm:order-1"
-                    size="lg"
-                  >
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    返回修改
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setCurrentStep(0)}
-                    className="w-full sm:w-auto order-1 sm:order-2"
-                    size="lg"
-                  >
-                    重新計算
-                  </Button>
-                </div>
+                  {currentStep === STEPS.length - 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+                      <AnimatedButton
+                        type="button"
+                        variant="outline"
+                        onClick={handlePrevious}
+                        className="w-full sm:w-auto order-2 sm:order-1"
+                        size="lg"
+                      >
+                        <ChevronLeft className="mr-2 h-4 w-4" />
+                        返回修改
+                      </AnimatedButton>
+                      <AnimatedButton
+                        type="button"
+                        onClick={() => {
+                          setPrevStep(currentStep);
+                          setCurrentStep(0);
+                        }}
+                        className="w-full sm:w-auto order-1 sm:order-2"
+                        size="lg"
+                      >
+                        重新計算
+                      </AnimatedButton>
+                    </div>
+                  )}
+                </>
               )}
             </form>
           </CardContent>

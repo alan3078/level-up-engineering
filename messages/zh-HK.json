@@ -1,0 +1,5 @@
+{
+  "Navigation": {"home": "首頁", "calculator": "成本計算器", "portfolio": "作品集", "about": "關於我們", "contact": "聯絡我們"},
+  "Home": {"servicesTitle": "我們的服務", "servicesSubtitle": "提供專業全面的裝修及設計服務，滿足您的各種需求", "testimonialsTitle": "客戶評價", "testimonialsSubtitle": "真實客戶評價，了解我們的服務質素", "owner": "業主"},
+  "Common": {"before": "裝修前", "after": "裝修後", "all": "全部", "language": "語言"}
+}

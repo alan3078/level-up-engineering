@@ -6,6 +6,9 @@ import { FixedLayout } from "@/components/layout/fixed-layout";
 import { Star } from "lucide-react";
 import { useTestimonials } from "@/lib/hooks";
 import type { Testimonial } from "@/lib/types";
+import { localize } from "@/lib/i18n";
+import { useLocale } from "@/lib/providers/locale-provider";
+import { useTranslations } from "next-intl";
 
 // Fallback testimonials
 const fallbackTestimonials: Testimonial[] = [
@@ -45,6 +48,8 @@ const fallbackTestimonials: Testimonial[] = [
 ];
 
 export function Testimonials() {
+  const { locale } = useLocale();
+  const t = useTranslations("Home");
   const { data: testimonialsData = [] } = useTestimonials();
   const testimonials =
     testimonialsData.length > 0 ? testimonialsData : fallbackTestimonials;
@@ -52,10 +57,8 @@ export function Testimonials() {
     <FixedLayout>
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold">客戶評價</h2>
-          <p className="text-muted-foreground">
-            真實客戶評價，了解我們的服務質素
-          </p>
+          <h2 className="text-3xl font-bold">{t("testimonialsTitle")}</h2>
+          <p className="text-muted-foreground">{t("testimonialsSubtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -69,7 +72,7 @@ export function Testimonials() {
                   <div>
                     <p className="font-semibold">{testimonial.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {testimonial.propertyType}業主
+                      {testimonial.propertyType} {t("owner")}
                     </p>
                   </div>
                 </div>
@@ -83,7 +86,7 @@ export function Testimonials() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {'"'}
-                  {testimonial.comment}
+                  {localize(testimonial.comment, locale)}
                   {'"'}
                 </p>
               </CardContent>
